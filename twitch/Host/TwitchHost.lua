@@ -320,7 +320,7 @@ function Instance:_eventSubMessage(msg)
 			local elem = self.tblEventSubListen[obj.payload.subscription.type]
 			
 			if (elem) then
-				log("[EventSub] Calling Alert Function with payload: ".. json.encode(obj.payload.event))
+				-- log("[EventSub] Calling Alert Function with payload: ".. json.encode(obj.payload.event))
 				elem.fn(elem.inst, json.encode(obj.payload.event))
 			end
 
@@ -333,7 +333,7 @@ function Instance:_eventSubMessage(msg)
 			local reconnect_url = obj.payload.session.reconnect_url
 			self._eventSubReconnect(reconnect_url)
 		else
-			log("[EventSub] Message type is not a welcome: " .. obj.metadata.message_type)
+			-- log("[EventSub] Message type is not a welcome: " .. obj.metadata.message_type)
 		end
 	else
 		log("[EventSub] Error decoding message: " .. decodeError)

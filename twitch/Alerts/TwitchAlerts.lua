@@ -411,6 +411,17 @@ function Instance:raiseAlertWithUsername(alert, args)
 end
 
 function Instance:raiseAlertWithProfileUrl(alert, user_name, args)
+
+	self:queryUserInfo(user_name, function (info)
+		if (info) then
+			args.profile_url = info.profile_image_url
+		end
+		alert:raise(args)
+	end)	
+
+end
+
+function Instance:raiseFollowAlertWithProfileUrl(alert, user_name, args)
 	
 	-- Attempting new method to fetch the profile image.
 	-- fetch() isn't forming the proper URL for this request.  Need to append args.
@@ -447,27 +458,21 @@ function Instance:onNewEventFollower(obj)
 	 
 	local obj = json.decode(obj)
 
-	log("[EventSub] New Follower triggered ")
-	log("[EventSub] " .. obj['user_name'])
-	local username = obj['user_name']
-
-	-- This was used in testing.
-	-- Created a separate function sans the query.
-	--[[ self:raiseAlertWithUsername(self.properties.Alerts.onNewFollower, {
-		user_name=username
-	}) ]]
+	--log("[EventSub] New Follower triggered " .. obj['user_name'])
+	
+	-- local username = obj['user_name']
 
 	-- Query is run on the user name when function is called
 	-- but doesn't work with the Twitch CLI server simulation.
-	log("[EventSub] Attempting to query user info: " .. obj['user_name'])
-	self:raiseAlertWithProfileUrl(self.properties.Alerts.onNewFollower, obj['user_name'], {
+	-- log("[EventSub] Attempting to query user info: " .. obj['user_name'])
+	self:raiseFollowAlertWithProfileUrl(self.properties.Alerts.onNewFollower, obj['user_name'], {
 		user_name=obj['user_name']
 	})
 end
 
 function Instance:onNewFollower(obj)
 
-	log("[OLD PubSub] New Follower triggered " -- .. json.encode(obj)
+	log("[OLD PubSub] Follower triggered " 
 )
 
 	-- Suppress re-follows during this session
