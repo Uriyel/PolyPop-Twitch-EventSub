@@ -138,7 +138,7 @@ function fetch(obj, host, endpoint, params)
 	end
 
 	local promise = createPromise()
-	log("[EventSub] JSON Request " .. json.encode(params))
+	-- log("[EventSub] JSON Request " .. json.encode(params))   -- DEBUG to check payload sent to Twitch
 	host:sendHTTPRequest(params, obj, function(obj, resp)
 
 		if (not resp:isResponseError()) then

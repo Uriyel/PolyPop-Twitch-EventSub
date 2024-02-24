@@ -432,11 +432,11 @@ function Instance:raiseFollowAlertWithProfileUrl(alert, user_name, args)
 
 		if (obj.data) then
 			
-			log("[EventSub] We got Data back!")
+			--log("[EventSub] We got Data back!")
 			args.profile_url = obj.data[1].profile_image_url
 			args.user_name = obj.data[1].display_name
 			
-			log("[EventSub] user: " .. args.user_name .. " profile_url: " .. args.profile_url)
+			--log("[EventSub] user: " .. args.user_name .. " profile_url: " .. args.profile_url)
 			
 			self.properties.Alerts.onNewFollower:raise(
 				{
@@ -1355,9 +1355,9 @@ end
 
 function Instance:queryUserInfo(login, fn)
 
-	log("[EventSubscriber] queryUserInfo: " .. login .. " with function: " .. tostring(fn))
+	--log("[EventSub] queryUserInfo: " .. login .. " with function: " .. tostring(fn))
 	if (self.user_cache[login] and self.user_cache[login].profile_image_url) then
-		log("[EventSubscriber] queryUserInfo: " .. login .. " already in cache")
+		--log("[EventSub] queryUserInfo: " .. login .. " already in cache")
 		local user_info = {
 			profile_image_url = self.user_cache[login].profile_image_url,
 			title = self.user_cache[login].title,

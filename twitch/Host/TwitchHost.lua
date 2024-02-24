@@ -162,7 +162,6 @@ function Instance:onOAuthToken(response)
 	if (obj and type(obj["access_token"]) == "string") then
 
 		self.access_token = obj["access_token"]
-		print(access_token)
 		self.host:writeHostCache("access_token", self.access_token)
 		self.host:writeHostCache("scope", twitch_scope)
 
@@ -255,7 +254,7 @@ function Instance:_eventSubConnected()
 	log("[EventSub] Websocket connected")
 	-- log("[EventSub] broadcaster id: ".. )
 
-	log("[EventSub] We need to handle the response here.")
+	-- log("[EventSub] We need to handle the response here.")
 	if (self.eventSubSessionId) then
 		log("[EventSub] Session ID: ".. self.eventSubSessionId)
 	else
@@ -291,10 +290,8 @@ function Instance:_eventSubMessage(msg)
 			log("[EventSub] Session welcome received")
 			-- Access the session ID from the payload
 			self.eventSubSessionId = obj.payload.session.id
-			
-			
-			log("[EventSub] sending Fetch with Session ID: ".. self.eventSubSessionId)
-			
+						
+			-- log("[EventSub] sending Fetch with Session ID: ".. self.eventSubSessionId)
 			fetch(self, self.host, "/helix/eventsub/subscriptions", 
 			{
 				method="POST",
@@ -315,7 +312,7 @@ function Instance:_eventSubMessage(msg)
 
 		elseif obj.metadata.message_type == "notification" then
 			log("[EventSub] Notification received")
-			log("[EventSub] Notification payload: ".. json.encode(obj.payload))
+			-- log("[EventSub] Notification payload: ".. json.encode(obj.payload))
 
 			local elem = self.tblEventSubListen[obj.payload.subscription.type]
 			
@@ -325,7 +322,7 @@ function Instance:_eventSubMessage(msg)
 			end
 
 			self.newFollower = obj.payload.event.user_name
-			log("[EventSub] Follower: ".. self.newFollower)
+			-- log("[EventSub] Follower: ".. self.newFollower)
 		
 			
 		elseif obj.metadata.message_type == "reconnect" then
