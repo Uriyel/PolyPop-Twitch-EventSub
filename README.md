@@ -11,7 +11,7 @@ Absolutely make a backup copy of \core-app and \twitch folders from `%AppData%\P
 If you encouter issues with the code fixes, you can revert back to the originals.
 
 2. Replace <br />
-Unzip this release into `%AppData%\PolyPop\Plugins`
+Unzip this release into `%AppData%\PolyPop\`
 
 
 
