@@ -28,7 +28,12 @@ Instance.properties = properties({
 			{ name="onGo", type="Alert", args={ user_name="[user_name]" } },
 			{ name="onCancelled", type="Alert", args={ user_name="[user_name]"} },
 			{ name="onIncomingRaid", type="Alert", args={ user_name="[user_name]", profile_url="[profile_url]", viewers=0 } }
-		}}
+		}},
+		{ name="HypeTrain", type="PropertyGroup", items={
+			{ name="onHypeTrainBegin", type="Alert", args={last_contributor="[last_contributor]", level="[level]", goal="[goal]", total="[total]", type="[type]" } },
+			{ name="onHypeTrainProgress", type="Alert", args={last_contributor="[last_contributor]", level="[level]", goal="[goal]", total="[total]", progress="[progress]", type="[type]" } },
+			{ name="onHypeTrainEnd", type="Alert", args={level="[level]", total="[total]" } },
+		}},
 	}},
 	{ name="CheerAlerts", type="ObjectSet", index="CheerAlerts" },
 	{ name="ChannelPoints", type="ObjectSet", index="ChannelPoints" },
@@ -265,7 +270,50 @@ function Instance:onSimulateAlert(alert)
 		self:onRaid(obj)
 		self.isTestRaid = false
 		print("(Test) Raid cancelled")
-	else
+	elseif (alert == self.properties.Alerts.HypeTrain.onHypeTrainBegin) then
+		
+		local test_user = "testuserPOP" .. tostring(math.random(100,100000))
+		local tblType = {'bits', 'subs'}
+
+		print("(Test) User " .. test_user .. " has subscribed", 213)
+		self.properties.Alerts.HypeTrain.onHypeTrainBegin:raise(
+		{
+			last_contributor = test_user,
+			level = math.random(1,100),
+			goal = math.random(1,100),
+			total = math.random(1,10),
+			type = tblType[math.random(#tblType)]
+		})
+	elseif (alert == self.properties.Alerts.HypeTrain.onHypeTrainProgress) then
+		
+		local test_user = "testuserPOP" .. tostring(math.random(100,100000))
+		local tblType = {'bits', 'subs'}
+
+		print("(Test) User " .. test_user .. " has subscribed", 213)
+		self.properties.Alerts.HypeTrain.onHypeTrainProgress:raise(
+		{
+			last_contributor = test_user,
+			level = math.random(1,100),
+			goal = math.random(1,100),
+			total = math.random(1,100),
+			progress = math.random(1,1000),
+			type = tblType[math.random(#tblType)]
+		})
+	elseif (alert == self.properties.Alerts.HypeTrain.onHypeTrainEnd) then
+		
+		local test_user = "testuserPOP" .. tostring(math.random(100,100000))
+		local tblType = {'bits', 'subs'}
+
+		print("(Test) User " .. test_user .. " has subscribed", 213)
+		self.properties.Alerts.HypeTrain.onHypeTrainEnd:raise(
+		{
+			last_contributor = nil,
+			level = math.random(1,100),
+			goal = nil,
+			total = math.random(1,10),
+			type = nil
+		})
+	else		
 		alert:raise(alert:getLastArgs())
 	end
 
@@ -470,6 +518,47 @@ function Instance:onNewEventFollower(obj)
 	})
 end
 
+function Instance:onHypeTrainBegin(obj)
+
+	local obj = json.decode(obj)
+	self.properties.Alerts.HypeTrain.onHypeTrainBegin:raise(
+		{
+			last_contributor = obj.last_contribution.user_name,
+			level = obj.level,
+			goal = obj.goal,
+			total = obj.total,
+			type = obj.last_contribution.type
+		})
+end
+
+function Instance:onHypeTrainProgress(obj)
+
+	local obj = json.decode(obj)
+	self.properties.Alerts.HypeTrain.onHypeTrainProgress:raise(
+		{
+			last_contributor = obj.last_contribution.user_name,
+			level = obj.level,
+			goal = obj.goal,
+			total = obj.total,
+			progress = obj.progress,
+			type = obj.last_contribution.type
+		})
+end
+
+function Instance:onHypeTrainEnd(obj)
+
+	local obj = json.decode(obj)
+	self.properties.Alerts.HypeTrain.onHypeTrainEnd:raise(
+		{
+			-- figure out how to display top contributors
+			level = obj.level,
+			total = obj.total
+		})
+
+end
+
+	
+
 function Instance:onNewFollower(obj)
 
 	log("[OLD PubSub] Follower triggered " 
@@ -614,8 +703,11 @@ function Instance:setUserID(user_id, login)
 		self.host.twitch:pubSubListen("channel-bits-events-v2." .. user_id, self, self.onCheer)
 		self.host.twitch:pubSubListen("channel-subscribe-events-v1." .. user_id, self, self.onNewSubscription)
 		self.host.twitch:pubSubListen("channel-points-channel-v1." .. user_id, self, self.onChannelPoints)
-		self.host.twitch:eventSubListen("channel.follow", user_id, self, self.onNewEventFollower)
 		self.host.twitch:pubSubListen("raid." .. user_id, self, self.onRaid)
+		self.host.twitch:eventSubListen("channel.follow", user_id, self, self.onNewEventFollower)
+		self.host.twitch:eventSubListen("channel.hype_train.begin", user_id, self, self.onHypeTrainBegin)
+		self.host.twitch:eventSubListen("channel.hype_train.progress", user_id, self, self.onHypeTrainProgress)
+		self.host.twitch:eventSubListen("channel.hype_train.end", user_id, self, self.onHypeTrainEnd)
 		self:enableChat(true)
 			
 		self.ptFollows:setEnabled(true)

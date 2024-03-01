@@ -3,7 +3,7 @@ require "fetch"
 
 
 client_id = "hawpk393w7ctms9j5ex5jie3142yy0"
-twitch_scope = "chat:read+channel:read:stream_key+user:read:email+channel:read:subscriptions+channel:read:redemptions+channel:manage:redemptions+bits:read+channel:edit:commercial+moderator:read:chatters+moderator:read:followers+moderation:read+channel:read:vips"
+twitch_scope = "chat:read+channel:read:stream_key+user:read:email+channel:read:subscriptions+channel:read:redemptions+channel:manage:redemptions+bits:read+channel:edit:commercial+moderator:read:chatters+moderator:read:followers+moderation:read+channel:read:vips+channel:read:hype_train"
 
 Instance.host = nil
 Instance.isAuthenticating = false
@@ -162,6 +162,7 @@ function Instance:onOAuthToken(response)
 	if (obj and type(obj["access_token"]) == "string") then
 
 		self.access_token = obj["access_token"]
+		print(access_token)
 		self.host:writeHostCache("access_token", self.access_token)
 		self.host:writeHostCache("scope", twitch_scope)
 
@@ -204,27 +205,12 @@ function Instance:eventSubListen(topic, user_id, inst, fn)
 
 	self.broadcaster_id = user_id
 
-	-- Gets list of current subscriptions
-	--[[log("[EventSub] Getting list of current subscriptions")
-	fetch(self, self.host, "/helix/eventsub/subscriptions",
-		{
-			method="GET",
-			headers={'Content-Type: application/json', 'Client-ID: '.. client_id, 'Authorization: Bearer '.. self.access_token}
-		}):next(jsonify):next(function (obj)
-			log("[EventSub] Parse this list for an existing session id: " .. json.encode(obj))
-		end) ]]--
-	
-	-- Twitch Discord says it isn't necessary to manually remove disconnected sessions
-	
 	-- Skip if we already have this topic
 	if (self.tblEventSubListen[topic]) then
 		return
 	end
 
 	self.tblEventSubListen[topic] = { inst=inst, fn=fn }
-
-
-
 
 	if (not self.EventSubWebSocket) then
 		log("[EventSub] Connecting")
@@ -254,9 +240,9 @@ function Instance:_eventSubConnected()
 	log("[EventSub] Websocket connected")
 	-- log("[EventSub] broadcaster id: ".. )
 
-	-- log("[EventSub] We need to handle the response here.")
+	--log("[EventSub] We need to handle the response here.")
 	if (self.eventSubSessionId) then
-		log("[EventSub] Session ID: ".. self.eventSubSessionId)
+		--log("[EventSub] Session ID: ".. self.eventSubSessionId)
 	else
 		log("[EventSub] Session ID not yet available.")
 	end  
@@ -291,7 +277,8 @@ function Instance:_eventSubMessage(msg)
 			-- Access the session ID from the payload
 			self.eventSubSessionId = obj.payload.session.id
 						
-			-- log("[EventSub] sending Fetch with Session ID: ".. self.eventSubSessionId)
+			log("[EventSub] sending Fetch with Session ID: ".. self.eventSubSessionId)
+			
 			fetch(self, self.host, "/helix/eventsub/subscriptions", 
 			{
 				method="POST",
@@ -308,21 +295,83 @@ function Instance:_eventSubMessage(msg)
 						session_id=self.eventSubSessionId
 					}
 				})
-			}):next(jsonify)
+			}):next(jsonify):next(function (resp)
+				log("[EventSub] Subscription response: ")
+				if (resp) then
+					--log("[EventSub] resp status: " .. resp.data[1].status)
+					if resp.data[1].status == "enabled" then
+						--log("[EventSub] Create the additional subscriptions here")
+						
+						--sub to Hype Train Begin
+						fetch(self, self.host, "/helix/eventsub/subscriptions", 
+						{
+							method="POST",
+							headers={'Content-Type: application/json', 'Client-ID: '.. client_id, 'Authorization: Bearer '.. self.access_token},
+							body = json.encode({
+								type="channel.hype_train.begin",
+								version="1",
+								condition={
+									broadcaster_user_id=self.broadcaster_id,
+								},
+								transport={
+									method="websocket",
+									session_id=self.eventSubSessionId
+								}
+							})
+						}):next(jsonify)
+
+						--sub to Hype Train Progress
+						fetch(self, self.host, "/helix/eventsub/subscriptions", 
+						{
+							method="POST",
+							headers={'Content-Type: application/json', 'Client-ID: '.. client_id, 'Authorization: Bearer '.. self.access_token},
+							body = json.encode({
+								type="channel.hype_train.progress",
+								version="1",
+								condition={
+									broadcaster_user_id=self.broadcaster_id,
+								},
+								transport={
+									method="websocket",
+									session_id=self.eventSubSessionId
+								}
+							})
+						}):next(jsonify)
+
+						--sub to Hype Train End
+						fetch(self, self.host, "/helix/eventsub/subscriptions", 
+						{
+							method="POST",
+							headers={'Content-Type: application/json', 'Client-ID: '.. client_id, 'Authorization: Bearer '.. self.access_token},
+							body = json.encode({
+								type="channel.hype_train.end",
+								version="1",
+								condition={
+									broadcaster_user_id=self.broadcaster_id,
+								},
+								transport={
+									method="websocket",
+									session_id=self.eventSubSessionId
+								}
+							})
+						}):next(jsonify)
+					end
+				end
+			end)
 
 		elseif obj.metadata.message_type == "notification" then
 			log("[EventSub] Notification received")
-			-- log("[EventSub] Notification payload: ".. json.encode(obj.payload))
+			log("[EventSub] Notification payload: ".. json.encode(obj.payload))
 
 			local elem = self.tblEventSubListen[obj.payload.subscription.type]
 			
 			if (elem) then
-				-- log("[EventSub] Calling Alert Function with payload: ".. json.encode(obj.payload.event))
+				log("[EventSub] Calling Alert Function with payload: ".. json.encode(obj.payload.event))
 				elem.fn(elem.inst, json.encode(obj.payload.event))
 			end
 
-			self.newFollower = obj.payload.event.user_name
-			-- log("[EventSub] Follower: ".. self.newFollower)
+			--self.newFollower = obj.payload.event.user_name
+			--log("[EventSub] Follower: ".. self.newFollower)
 		
 			
 		elseif obj.metadata.message_type == "reconnect" then
@@ -330,7 +379,7 @@ function Instance:_eventSubMessage(msg)
 			local reconnect_url = obj.payload.session.reconnect_url
 			self._eventSubReconnect(reconnect_url)
 		else
-			-- log("[EventSub] Message type is not a welcome: " .. obj.metadata.message_type)
+			--log("[EventSub] Message type is not a welcome: " .. obj.metadata.message_type)
 		end
 	else
 		log("[EventSub] Error decoding message: " .. decodeError)

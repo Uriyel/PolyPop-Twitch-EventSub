@@ -122,6 +122,51 @@ function Promise:finally(fn)
 	self.fnCatch = fn
 end
 
+-----------------------------------------------------
+-- Fetch TESTING on localhost
+-----------------------------------------------------
+function testfetch(obj, host, endpoint, params)
+
+	if (type(endpoint)=="string") then
+		if (not params) then
+			params = {}
+		end
+		params.url = "http://127.0.0.1:8080" .. endpoint
+	else 
+		params = endpoint
+	end
+
+	if (params.login) then
+		params.url = params.url .. "?login=" .. params.login
+	end
+
+	local promise = createPromise()
+	--log("[EventSub] JSON Request " .. json.encode(params))   -- DEBUG to check payload sent to Twitch
+	host:sendHTTPRequest(params, obj, function(obj, resp)
+
+		if (not resp:isResponseError()) then
+			if (promise.fnSuccess) then
+				log("[TestFetch Success] " .. params.url .. ": " .. tostring(resp:getResponseStatus()) .. " " .. resp:getResponseAsText())
+				promise.fnSuccess(resp)
+			end
+		else
+			log("[TestFetch Error] " .. params.url .. ": " .. tostring(resp:getResponseStatus()) .. " " .. resp:getResponseAsText())
+			if (promise.fnFail) then
+				promise.fnFail(resp)
+			end
+		end
+
+	end)
+
+	return promise
+
+end
+
+
+
+
+-----------------------------------------------------
+
 function fetch(obj, host, endpoint, params)
 
 	if (type(endpoint)=="string") then
@@ -138,7 +183,7 @@ function fetch(obj, host, endpoint, params)
 	end
 
 	local promise = createPromise()
-	-- log("[EventSub] JSON Request " .. json.encode(params))   -- DEBUG to check payload sent to Twitch
+	log("[EventSub] JSON Request " .. json.encode(params))   -- DEBUG to check payload sent to Twitch
 	host:sendHTTPRequest(params, obj, function(obj, resp)
 
 		if (not resp:isResponseError()) then
